@@ -1,0 +1,48 @@
+
+#### The test data were generated for testing runtime environment and checking the format of all input files.
+#### Results from the test data will NOT reflect real pattern.
+
+## software version
+# Python >= 3.8.13 with NumPy (>=1.21.5) installed
+# BEDTools >= 2.29.0
+
+### for ATAC-Seq/DNase-Seq summit and footprinting
+## annotate summit/footprintings with TFBS/motifs
+# step 1: 
+bedtools intersect -a testdata/summit.bed.gz -b testdata/motif.bed.gz -sorted -wao | gzip -nc > testdata/summitWithMotif.tab.gz
+
+# step 2: filter silent TFs
+python filter_expressed_tf.py -i testdata/summitWithMotif.tab.gz -e testdata/expressedTF.txt -o testdata/summitWithExpressedMotif.tab.gz
+
+
+## compute TF positional profile
+python analyze_position.py -i testdata/summitWithExpressedMotif.tab.gz -o testdata/position
+
+
+## compute TF density profile
+python analyze_density.py -i testdata/summitWithExpressedMotif.tab.gz -o testdata/density.tab
+
+
+## compute TF colocalization
+python analyze_colocalization.py -i testdata/summitWithExpressedMotif.tab.gz -o testdata/colocalization
+
+
+
+### for ChIP-Seq data
+## compute TF density of ChIP-Seq data
+# step 1: merge ChIP Peaks as regions
+bedtools merge -i testdata/ChIPPeak.bed.gz | awk '{print $1"\t"$2"\t"$3"\t"$1"_"$2"_"$3}' | gzip -nc > testdata/ChIPRegion.bed.gz
+
+# step 2: mapping ChIP peaks to regions
+bedtools intersect -a testdata/ChIPRegion.bed.gz -b testdata/ChIPPeak.bed.gz -sorted -wao | gzip -nc > testdata/ChIPPeak2Region.tab.gz
+
+# step 3: compute density profile
+python analyze_density.py -i testdata/ChIPPeak2Region.tab.gz -o testdata/density_ChIP.tab
+
+
+## compute TF colocalization of ChIP-Seq data
+# step 1: check peak overlap
+bedtools intersect -a testdata/ChIPPeak.bed.gz -b testdata/ChIPPeak.bed.gz -sorted -wao | gzip -nc > testdata/ChIPPeakOverlap.tab.gz
+
+# step 2: compute TF colocalization
+python analyze_colocalization_ChIP.py -i testdata/ChIPPeakOverlap.tab.gz -o testdata/colocalization_ChIP
